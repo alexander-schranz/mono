@@ -3,9 +3,10 @@
 
 // helps to manage dependencies in all `composer.json` files
 // Common usages:
-//     bin/mono composer update
-//     bin/mono composer fix
-//     bin/mono composer lint
+//     vendor/bin/mono composer install
+//     vendor/bin/mono composer update
+//     vendor/bin/mono composer fix
+//     vendor/bin/mono composer lint
 
 function findDirectoriesWithComposerJson(string $directory)
 {
@@ -16,7 +17,12 @@ function findDirectoriesWithComposerJson(string $directory)
 
     foreach ($iterator as $path => $fileInfo) {
         $relativePath = str_replace($directory, '', $path);
+
         if (str_contains($relativePath, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+            continue;
+        }
+
+        if ($directory ===  dirname($path)) {
             continue;
         }
 
