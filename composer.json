@@ -1,0 +1,23 @@
+{
+    "name": "schranz/mono",
+    "description": "A binary to run commands in a monorepo",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "monorepository",
+        "mono",
+        "monorepo"
+    ],
+    "authors": [
+        {
+            "name": "Alexander Schranz",
+            "email": "alexander@sulu.io"
+        }
+    ],
+    "require": {
+        "php": "^8.1"
+    },
+    "bin": [
+        "bin/mono"
+    ]
+}

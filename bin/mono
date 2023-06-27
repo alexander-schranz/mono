@@ -1,0 +1,70 @@
+#!/usr/bin/env php
+<?php
+
+// helps to manage dependencies in all `composer.json` files
+// Common usages:
+//     bin/mono composer update
+//     bin/mono composer fix
+//     bin/mono composer lint
+
+function findDirectoriesWithComposerJson(string $directory)
+{
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+
+    foreach ($iterator as $path => $fileInfo) {
+        $relativePath = str_replace($directory, '', $path);
+        if (str_contains($relativePath, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+            continue;
+        }
+
+        if ($fileInfo->isFile() && $fileInfo->getFilename() === 'composer.json') {
+            $composerJsonFiles[] = dirname($path);
+        }
+    }
+
+    return $composerJsonFiles;
+}
+
+function runCommand($directory, $command)
+{
+    $cwd = getcwd();
+
+    try {
+        chdir($directory);
+
+        echo "Executing in $directory: " . $command . PHP_EOL;
+        exec($command, $output,$exitCode);
+
+        if ($exitCode !== 0) {
+            // echo implode(PHP_EOL, $output) . PHP_EOL;
+
+            exit($exitCode);
+        }
+
+        echo PHP_EOL;
+    } finally {
+        chdir($cwd);
+    }
+}
+
+$directories = [
+    dirname(__DIR__),
+];
+
+$directoriesWithComposerJson = findDirectoriesWithComposerJson(getcwd());
+
+$arguments = $argv;
+unset($arguments[0]);
+
+// Output the result
+foreach ($directoriesWithComposerJson as $directory) {
+    $directory = str_replace(getcwd(), '.', $directory);
+    echo "Composer.json found in directory: " . $directory . PHP_EOL;
+
+    if (count($arguments)) {
+        runCommand($directory, implode(' ', $arguments));
+    }
+}
