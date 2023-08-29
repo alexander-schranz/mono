@@ -2,7 +2,7 @@
 
 Managing a monorepository?
 
-Mono helps you to run composer and other commands for all your package directories.
+Mono helps you to initialize subtree split and run composer and other commands for all your package directories.
 
 ## Installation
 
@@ -12,8 +12,24 @@ composer require schranz/mono --dev
 
 ## Usage
 
-Mono does search for all the directories containing a `composer.json` 
-and does run the given command in all of them.
+## Init Split Command
+
+First create your mono repository and push it to Github.
+
+Create your packages into different directories make sure
+for to create for all packages you want to split a `composer.json` with a `name` in it.
+
+Then run:
+
+```bash
+vendor/bin/mono init-split
+```
+
+It will create the configuration for [frankdejonge/use-subsplit-publish](https://github.com/frankdejonge/use-subsplit-publish)
+Github Action. Make sure to configure your `PERSONAL_ACCESS_TOKEN` as a secret in your Github repository.
+And configure the user in the newly created `.github/workflows/publish-subsplits.yml` file.
+
+## Run Command
 
 To install the dependencies of all your mono repositories, just run:
 
