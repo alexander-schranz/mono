@@ -9,7 +9,12 @@
 //     vendor/bin/mono run composer lint
 //     vendor/bin/mono run composer test
 
-function findDirectoriesWithComposerJson(string $directory)
+// helps to initialize a subtree split
+// Common usages:
+//     vendor/bin/mono init-split
+//     vendor/bin/mono init-split /path/to/project
+
+function findPackages(string $directory)
 {
     $iterator = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
@@ -17,6 +22,11 @@ function findDirectoriesWithComposerJson(string $directory)
     );
 
     $composerJsonFiles = [];
+
+    /**
+     * @var string $path
+     * @var \SplFileInfo $fileInfo
+     */
     foreach ($iterator as $path => $fileInfo) {
         $relativePath = str_replace($directory, '', $path);
 
@@ -29,7 +39,20 @@ function findDirectoriesWithComposerJson(string $directory)
         }
 
         if ($fileInfo->isFile() && $fileInfo->getFilename() === 'composer.json') {
-            $composerJsonFiles[] = dirname($path);
+            $name = json_decode(file_get_contents($fileInfo->getRealPath()), true)['name'] ?? null;
+            $composerJsonFiles[] = [
+                'name' => $name,
+                'shortname' => $name ? (\explode('/', $name, 2)[1] ?? \explode('/', $name, 2)[0]) : null,
+                'directory' => dirname($path),
+                'isPackage' => $name !== null && !\in_array($name, [
+                    'yiisoft/app',
+                    'spiral/app',
+                    'mezzio/mezzio-skeleton',
+                    'laravel/laravel',
+                    'symfony/skeleton',
+                    'sulu/skeleton',
+                ]),
+            ];
         }
     }
 
@@ -58,10 +81,10 @@ function runSingleCommand($directory, $command)
     }
 }
 
-function runCommand(array $directoriesWithComposerJson, array $arguments) {
+function runCommand(array $packages, array $arguments) {
     // Output the result
-    foreach ($directoriesWithComposerJson as $directory) {
-        $directory = str_replace(getcwd(), '.', $directory);
+    foreach ($packages as $package) {
+        $directory = str_replace(getcwd(), '.', $package['directory']);
         echo "Composer.json found in directory: " . $directory . PHP_EOL;
 
         if (count($arguments)) {
@@ -70,30 +93,112 @@ function runCommand(array $directoriesWithComposerJson, array $arguments) {
     }
 }
 
-function init(array $directoriesWithComposerJson, array $arguments) {
+function initSplit(array $packages, array $arguments) {
+    $gitUrl = exec('git remote get-url origin');
+    if (!$gitUrl && !str_contains($gitUrl, 'github.com') && !str_ends_with($gitUrl, '.git')) {
+        throw new \RuntimeException('Could not find remote repository for origin.');
+    }
+
+    $gitRootUrl = \explode('/', $gitUrl)[0];
+
     $projectDir = $arguments[0] ?? getcwd();
+
+    echo PHP_EOL;
+    echo 'Init Project' . PHP_EOL;
+    echo '============' . PHP_EOL;
+    echo PHP_EOL;
+
+    echo 'Create "config.subsplit-publish.json": ' . PHP_EOL;
+
     if (!file_exists($projectDir . DIRECTORY_SEPARATOR . 'config.subsplit-publish.json')) {
         $config = ['sub-splits' => []];
-        foreach ($directoriesWithComposerJson as $directory) {
-            $directory = str_replace(getcwd(), '.', $directory);
+        foreach ($packages as $package) {
+            if (!$package['isPackage']) {
+                continue;
+            }
+
+            $directory = str_replace(getcwd() . '/', '', $package['directory']);
             $config['sub-splits'][] = [
+                'name' => $package['shortname'],
                 'directory' => $directory,
-                'url' => '';
+                'url' => $gitRootUrl . '/' . $package['shortname'] . '.git',
+            ];
         }
 
-        mkdir($projectDir, 0777, true);
+        $json = \json_encode($config, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_THROW_ON_ERROR);
+
+        \file_put_contents(
+            $projectDir . DIRECTORY_SEPARATOR . 'config.subsplit-publish.json',
+            $json
+        );
+
+        echo ' ->  Done' . PHP_EOL;
+    } else {
+        echo ' -> Skipped (already exists)' . PHP_EOL;
     }
 
+    echo PHP_EOL;
+    echo 'Create ".github/workflows/publish-subsplits.yml": ' . PHP_EOL;
+    $filePath = $projectDir .DIRECTORY_SEPARATOR .
+        '.github' . DIRECTORY_SEPARATOR. 'workflows' . DIRECTORY_SEPARATOR . 'publish-subsplits.yml';
 
-    // Output the result
-    foreach ($directoriesWithComposerJson as $directory) {
-        $directory = str_replace(getcwd(), '.', $directory);
-        echo "Composer.json found in directory: " . $directory . PHP_EOL;
-
-        if (count($arguments)) {
-            runSingleCommand($directory, implode(' ', $arguments));
+    if (!file_exists($filePath)) {
+        if (!is_dir(dirname($filePath))) {
+            mkdir($filePath, 0777, true);
         }
+
+        $githubWorkflow = <<<'EOT'
+name: Sub-Split Publishing
+
+on:
+    push:
+        branches:
+            - '[0-9]+.[0-9]+'
+    create:
+        tags:
+            - '*'
+    delete:
+        tags:
+            - '*'
+
+jobs:
+    publish_subsplits:
+        runs-on: ubuntu-latest
+        name: Publish package sub-splits
+        steps:
+            -   uses: actions/checkout@v2
+                with:
+                    fetch-depth: '0'
+                    persist-credentials: 'false'
+            -   uses: frankdejonge/use-github-token@1.0.1
+                with:
+                    authentication: 'YOUR_USERNAME:${{ secrets.PERSONAL_ACCESS_TOKEN }}'
+                    user_name: 'YOUR NAME'
+                    user_email: 'YOUR@EMAIL'
+            -   name: Cache splitsh-lite
+                id: splitsh-cache
+                uses: actions/cache@v2
+                with:
+                    path: './.splitsh'
+                    key: '${{ runner.os }}-splitsh'
+            -   uses: frankdejonge/use-subsplit-publish@1.0.0-beta.7
+                with:
+                    source-branch: '${{ github.ref_name }}'
+                    config-path: './config.subsplit-publish.json'
+                    splitsh-path: './.splitsh/splitsh-lite'
+                    splitsh-version: 'v1.0.1'
+
+EOT;
+
+        file_put_contents($filePath, $githubWorkflow);
+
+        echo ' -> Done (configure your name, email and username)' . PHP_EOL;
+    } else {
+        echo ' -> Skipped (already exists)' . PHP_EOL;
     }
+
+    echo PHP_EOL;
+    echo 'Make sure to configure PERSONAL_ACCESS_TOKEN in your repository secrets.' . PHP_EOL;
 }
 
 $directories = [
@@ -110,16 +215,19 @@ if (null === $command) {
     echo 'Available commands: ' . PHP_EOL;
     echo '===================' . PHP_EOL;
     echo PHP_EOL;
+    echo ' - init-split eg. "vendor/bin/mono init"' . PHP_EOL;
+    echo '     Initialize projects mono repository configuration for subtree split' . PHP_EOL;
     echo ' - run <command> <arguments> eg. "vendor/bin/mono run composer install"' . PHP_EOL;
+    echo '     Run a command in all found packages' . PHP_EOL;
 
     exit(0);
 }
 
-$directoriesWithComposerJson = findDirectoriesWithComposerJson(getcwd());
+$packages = findPackages(getcwd());
 
 $return = match ($command) {
-    'init' => init($directoriesWithComposerJson, $arguments),
-    'run' => runCommand($directoriesWithComposerJson, $arguments),
+    'init-split' => initSplit($packages, $arguments),
+    'run' => runCommand($packages, $arguments),
     default => exit(1),
 };
 
