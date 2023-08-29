@@ -18,21 +18,21 @@ and does run the given command in all of them.
 To install the dependencies of all your mono repositories, just run:
 
 ```bash
-vendor/bin/mono composer install
+vendor/bin/mono run composer install
 ```
 
 To update them run:
 
 ```bash
-vendor/bin/mono composer update
+vendor/bin/mono run composer update
 ```
 
 To run a custom custom composer script use:
 
 ```bash
-vendor/bin/mono composer fix # runs in my case rector + php-cs-fixer
+vendor/bin/mono run composer fix # runs in my case rector + php-cs-fixer
 
-vendor/bin/mono composer lint # runs in my case various linters (phpstan, php-cs, ...)
+vendor/bin/mono run composer lint # runs in my case various linters (phpstan, php-cs, ...)
 ```
 
 Mono is used and was build for managing [schranz-search monorepository](https://github.com/schranz-search/schranz-search).
