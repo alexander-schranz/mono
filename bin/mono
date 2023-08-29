@@ -70,6 +70,32 @@ function runCommand(array $directoriesWithComposerJson, array $arguments) {
     }
 }
 
+function init(array $directoriesWithComposerJson, array $arguments) {
+    $projectDir = $arguments[0] ?? getcwd();
+    if (!file_exists($projectDir . DIRECTORY_SEPARATOR . 'config.subsplit-publish.json')) {
+        $config = ['sub-splits' => []];
+        foreach ($directoriesWithComposerJson as $directory) {
+            $directory = str_replace(getcwd(), '.', $directory);
+            $config['sub-splits'][] = [
+                'directory' => $directory,
+                'url' => '';
+        }
+
+        mkdir($projectDir, 0777, true);
+    }
+
+
+    // Output the result
+    foreach ($directoriesWithComposerJson as $directory) {
+        $directory = str_replace(getcwd(), '.', $directory);
+        echo "Composer.json found in directory: " . $directory . PHP_EOL;
+
+        if (count($arguments)) {
+            runSingleCommand($directory, implode(' ', $arguments));
+        }
+    }
+}
+
 $directories = [
     dirname(__DIR__),
 ];
@@ -92,6 +118,7 @@ if (null === $command) {
 $directoriesWithComposerJson = findDirectoriesWithComposerJson(getcwd());
 
 $return = match ($command) {
+    'init' => init($directoriesWithComposerJson, $arguments),
     'run' => runCommand($directoriesWithComposerJson, $arguments),
     default => exit(1),
 };
