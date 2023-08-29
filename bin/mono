@@ -3,10 +3,11 @@
 
 // helps to manage dependencies in all `composer.json` files
 // Common usages:
-//     vendor/bin/mono composer install
-//     vendor/bin/mono composer update
-//     vendor/bin/mono composer fix
-//     vendor/bin/mono composer lint
+//     vendor/bin/mono run composer install
+//     vendor/bin/mono run composer update
+//     vendor/bin/mono run composer fix
+//     vendor/bin/mono run composer lint
+//     vendor/bin/mono run composer test
 
 function findDirectoriesWithComposerJson(string $directory)
 {
@@ -15,6 +16,7 @@ function findDirectoriesWithComposerJson(string $directory)
         RecursiveIteratorIterator::SELF_FIRST
     );
 
+    $composerJsonFiles = [];
     foreach ($iterator as $path => $fileInfo) {
         $relativePath = str_replace($directory, '', $path);
 
@@ -34,7 +36,7 @@ function findDirectoriesWithComposerJson(string $directory)
     return $composerJsonFiles;
 }
 
-function runCommand($directory, $command)
+function runSingleCommand($directory, $command)
 {
     $cwd = getcwd();
 
@@ -56,21 +58,42 @@ function runCommand($directory, $command)
     }
 }
 
+function runCommand(array $directoriesWithComposerJson, array $arguments) {
+    // Output the result
+    foreach ($directoriesWithComposerJson as $directory) {
+        $directory = str_replace(getcwd(), '.', $directory);
+        echo "Composer.json found in directory: " . $directory . PHP_EOL;
+
+        if (count($arguments)) {
+            runSingleCommand($directory, implode(' ', $arguments));
+        }
+    }
+}
+
 $directories = [
     dirname(__DIR__),
 ];
 
-$directoriesWithComposerJson = findDirectoriesWithComposerJson(getcwd());
-
 $arguments = $argv;
 unset($arguments[0]);
+$command = $arguments[1] ?? null;
+unset($arguments[1]);
 
-// Output the result
-foreach ($directoriesWithComposerJson as $directory) {
-    $directory = str_replace(getcwd(), '.', $directory);
-    echo "Composer.json found in directory: " . $directory . PHP_EOL;
+if (null === $command) {
+    echo PHP_EOL;
+    echo 'Available commands: ' . PHP_EOL;
+    echo '===================' . PHP_EOL;
+    echo PHP_EOL;
+    echo ' - run <command> <arguments> eg. "vendor/bin/mono run composer install"' . PHP_EOL;
 
-    if (count($arguments)) {
-        runCommand($directory, implode(' ', $arguments));
-    }
+    exit(0);
 }
+
+$directoriesWithComposerJson = findDirectoriesWithComposerJson(getcwd());
+
+$return = match ($command) {
+    'run' => runCommand($directoriesWithComposerJson, $arguments),
+    default => exit(1),
+};
+
+exit($return);
