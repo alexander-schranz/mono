@@ -67,10 +67,10 @@ function runSingleCommand($directory, $command)
         chdir($directory);
 
         echo "Executing in $directory: " . $command . PHP_EOL;
-        exec($command, $output,$exitCode);
+        exec($command, $output, $exitCode);
 
         if ($exitCode !== 0) {
-            // echo implode(PHP_EOL, $output) . PHP_EOL;
+            echo implode(PHP_EOL, $output) . PHP_EOL;
 
             exit($exitCode);
         }
