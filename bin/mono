@@ -66,7 +66,10 @@ function runSingleCommand($directory, $command)
     try {
         chdir($directory);
 
-        echo "Executing in $directory: " . $command . PHP_EOL;
+        echo PHP_EOL;
+        echo "Mono executes > $command" . PHP_EOL;
+        echo PHP_EOL;
+
         exec($command, $output, $exitCode);
 
         if ($exitCode !== 0) {
@@ -84,8 +87,10 @@ function runSingleCommand($directory, $command)
 function runCommand(array $packages, array $arguments) {
     // Output the result
     foreach ($packages as $package) {
-        $directory = str_replace(getcwd(), '.', $package['directory']);
-        echo "Composer.json found in directory: " . $directory . PHP_EOL;
+        $directory = \str_replace(getcwd(), '.', $package['directory']);
+        $title = "`composer.json` found in directory: `" . substr($directory, 2) . '`' . PHP_EOL;
+        echo $title;
+        echo \str_repeat('=', \strlen($title) - 1) . PHP_EOL;
 
         if (count($arguments)) {
             runSingleCommand($directory, implode(' ', $arguments));
