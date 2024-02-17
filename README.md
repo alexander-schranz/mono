@@ -52,3 +52,13 @@ vendor/bin/mono run composer lint # runs in my case various linters (phpstan, ph
 ```
 
 Mono is used and was build for managing [schranz-search monorepository](https://github.com/schranz-search/schranz-search).
+
+## Upgrade dependency
+
+If you have one dependency used in multiple packages and want to upgrade it in all packages you can use:
+
+```bash
+vendor/bin/mono upgrade-dependency phpstan/phpstan
+```
+
+Mono search for all packages which has then `phpstan/phpstan` in it and update it to the latest stable version.
