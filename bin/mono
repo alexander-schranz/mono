@@ -84,6 +84,46 @@ function runSingleCommand($directory, $command)
     }
 }
 
+function upgradeDependencies(array $packages, array $arguments) {
+    $newVersions = [];
+    foreach ($arguments as $argument) {
+        $data = \json_decode(\file_get_contents('https://repo.packagist.org/p2/' . $argument . '.json'), true, 512, \JSON_THROW_ON_ERROR);
+        $lastVersion = $data['packages'][$argument][0]['version_normalized'];
+        $newVersionParts = \explode('.', $lastVersion, 3);
+        $newVersion = $newVersionParts[0] . '.' . $newVersionParts[1];
+        $newVersions[$argument] = $newVersion;
+    }
+
+    // Output the result
+    foreach ($packages as $package) {
+        $directory = \str_replace(getcwd(), '.', $package['directory']);
+        $composerFilePath = $directory . '/composer.json';
+        if (!file_exists($composerFilePath)) {
+            continue;
+        }
+
+        $composer = \json_decode(\file_get_contents($composerFilePath), true, 512, \JSON_THROW_ON_ERROR);
+
+        $dependencies = [...($composer['require'] ?? []), ...($composer['require-dev'] ?? [])];
+
+        foreach ($dependencies as $name => $version) {
+            if (\in_array($name, ['php'], true) || \str_starts_with($name, 'ext-')) {
+                continue;
+            }
+
+            if (!\in_array($name, $arguments, true)) {
+                continue;
+            }
+
+            $isDev = isset($composer['require-dev'][$name]);
+
+            echo 'Upgrade "' . $name . '" from ' . $version . ' to "' . $newVersions[$name] . " in " . $directory . '"' . PHP_EOL;
+
+            runSingleCommand($directory, 'composer require ' . $name . ':^' . $newVersions[$name] . ' --with-all-dependencies' . ' ' . ($isDev ? '--dev' : ''));
+        }
+    }
+}
+
 function runCommand(array $packages, array $arguments) {
     // Output the result
     foreach ($packages as $package) {
@@ -235,6 +275,7 @@ $packages = findPackages(getcwd());
 
 $return = match ($command) {
     'init-split' => initSplit($packages, $arguments),
+    'upgrade-dependency' => upgradeDependencies($packages, $arguments),
     'run' => runCommand($packages, $arguments),
     default => exit(1),
 };
