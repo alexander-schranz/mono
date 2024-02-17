@@ -277,7 +277,7 @@ $return = match ($command) {
     'init-split' => initSplit($packages, $arguments),
     'upgrade-dependency' => upgradeDependencies($packages, $arguments),
     'run' => runCommand($packages, $arguments),
-    default => exit(1),
+    default => 1,
 };
 
 exit($return);
