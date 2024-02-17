@@ -249,10 +249,6 @@ EOT;
     echo 'Make sure to configure PERSONAL_ACCESS_TOKEN in your repository secrets.' . PHP_EOL;
 }
 
-$directories = [
-    dirname(__DIR__),
-];
-
 $arguments = $argv;
 unset($arguments[0]);
 $command = $arguments[1] ?? null;
