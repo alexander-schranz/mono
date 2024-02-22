@@ -62,3 +62,10 @@ vendor/bin/mono upgrade-dependency phpstan/phpstan
 ```
 
 Mono search for all packages which has then `phpstan/phpstan` in it and update it to the latest stable version.
+
+## Projects using mono
+
+ - [schranz-search](https://github.com/schranz-search/schranz-search)
+ - [modelflow-ai](https://github.com/modelflow-ai/.github)
+
+Let me know via [an issue](https://github.com/alexander-schranz/mono) if you are using mono.
