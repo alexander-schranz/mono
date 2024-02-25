@@ -23,6 +23,22 @@ function findPackages(string $directory)
 
     $composerJsonFiles = [];
 
+    $pathToRepository = [];
+    if (\file_exists($directory . DIRECTORY_SEPARATOR . 'config.subsplit-publish.json')) {
+        $configSubSplitPublish = \file_get_contents($directory . DIRECTORY_SEPARATOR . 'config.subsplit-publish.json');
+        $configSubSplitPublishConfig = \json_decode($configSubSplitPublish, true);
+
+        if (isset($configSubSplitPublishConfig['sub-splits'])) {
+            foreach ($configSubSplitPublishConfig['sub-splits'] as $subSplit) {
+                if (isset($subSplit['directory']) && isset($subSplit['target'])) {
+                    $pathToRepository[
+                        $directory . DIRECTORY_SEPARATOR . $subSplit['directory'] . '/composer.json'
+                    ] = $subSplit['target'];
+                }
+            }
+        }
+    }
+
     /**
      * @var string $path
      * @var \SplFileInfo $fileInfo
@@ -40,6 +56,7 @@ function findPackages(string $directory)
 
         if ($fileInfo->isFile() && $fileInfo->getFilename() === 'composer.json') {
             $name = json_decode(file_get_contents($fileInfo->getRealPath()), true)['name'] ?? null;
+
             $composerJsonFiles[] = [
                 'name' => $name,
                 'shortname' => $name ? (\explode('/', $name, 2)[1] ?? \explode('/', $name, 2)[0]) : null,
@@ -52,6 +69,7 @@ function findPackages(string $directory)
                     'symfony/skeleton',
                     'sulu/skeleton',
                 ]),
+                'repository' => $pathToRepository[$path] ?? null,
             ];
         }
     }
@@ -121,6 +139,17 @@ function renameBranch(array $packages, array $arguments) {
         }
 
         [$repositoryOwner, $repositoryName] = \explode('/', $package['name'], 2);
+        if (isset($package['repository'])) {
+            $repositoryUriPart = \explode(':', \str_replace('.git', '', $package['repository']), 2)[1] ?? '';
+            $repositoryUriParts = \explode('/', $repositoryUriPart, 2);
+
+            if (isset($repositoryUriParts[0])) {
+                $repositoryOwner = $repositoryUriParts[0];
+            }
+            if (isset($repositoryUriParts[1])) {
+                $repositoryName = $repositoryUriParts[1];
+            }
+        }
 
         \error_clear_last();
 
@@ -332,7 +361,7 @@ if (null === $command) {
     echo '     Run a command in all found packages' . PHP_EOL;
     echo ' - upgrade-dependency <package_names> eg. "vendor/bin/mono upgrade-dependency phpstan/phpstan rector/rector"' . PHP_EOL;
     echo '     Update one or multiple dependencies in all found packages' . PHP_EOL;
-    echo ' - rename-branch <current_branch_name> <new_branch_name> eg. "vendor/bin/mono upgrade-dependency phpstan/phpstan rector/rector"' . PHP_EOL;
+    echo ' - rename-branch <current_branch_name> <new_branch_name> eg. "vendor/bin/mono rename-branch 0.6 0.7"' . PHP_EOL;
     echo '     Rename a specific branch in all found packages Github Repository' . PHP_EOL;
 
     exit(0);
