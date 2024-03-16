@@ -63,9 +63,22 @@ vendor/bin/mono upgrade-dependency phpstan/phpstan
 
 Mono search for all packages which has then `phpstan/phpstan` in it and update it to the latest stable version.
 
+## Rename branch
+
+If you want to rename a branch on all your packages in your mono repository you can use the following command:
+
+```bash
+PERSONAL_ACCESS_TOKEN=<token> vendor/bin/mono rename-branch 0.3 0.4
+```
+
+Mono search for all your packages and uses the Github API to rename a specific given branch to the new name.
+
+> You require at least a `PERSONAL_ACCESS_TOKEN` with `contents:write` or `admins:write` (default branch) scope.  
+
 ## Projects using mono
 
  - [schranz-search](https://github.com/schranz-search/schranz-search)
  - [modelflow-ai](https://github.com/modelflow-ai/.github)
 
 Let me know via [an issue](https://github.com/alexander-schranz/mono) if you are using mono.
+

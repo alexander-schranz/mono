@@ -84,6 +84,69 @@ function runSingleCommand($directory, $command)
     }
 }
 
+function renameBranch(array $packages, array $arguments) {
+    $currentBranchName = $arguments[0] ?? null;
+    $newBranchName = $arguments[1] ?? null;
+
+    if ($currentBranchName === null) {
+        throw new \RuntimeException('Current branch name is missing.');
+    }
+
+    if ($newBranchName === null) {
+        throw new \RuntimeException('New branch name is missing.');
+    }
+
+    $options = [
+        'http' => [
+            'method'  => 'POST',
+            'header'  =>
+                'Accept: application/vnd.github+json' . "\r\n" .
+                'Content-Type: application/x-www-form-urlencoded' . "\r\n" .
+                'Authorization: Bearer ' . (getenv('PERSONAL_ACCESS_TOKEN') ?? $_ENV['PERSONAL_ACCESS_TOKEN'] ?? '') . "\r\n" .
+                'X-GitHub-Api-Version: 2022-11-28' . "\r\n",
+            'content' => \json_encode(['new_name' => $newBranchName], \JSON_THROW_ON_ERROR),
+            'timeout' => 10,
+        ]
+    ];
+
+    \ini_set('user_agent','PHP schranz/mono package 2.0');
+
+    $context  = \stream_context_create($options);
+
+    $exit = 0;
+
+    foreach ($packages as $package) {
+        if (!$package['isPackage']) {
+            continue;
+        }
+
+        [$repositoryOwner, $repositoryName] = \explode('/', $package['name'], 2);
+
+        \error_clear_last();
+
+        $return = @\file_get_contents(
+            'https://api.github.com/repos/' . $repositoryOwner . '/' . $repositoryName . '/branches/' . $currentBranchName . '/rename',
+            false,
+            $context,
+        );
+
+        if ($return === false) {
+            $error = \error_get_last();
+
+            if (!\str_contains($error['message'], 'Failed to seek to position -1 in the stream')) { // ignore this error as we don't need to read the stream
+                ++$exit;
+
+                echo 'Error in "' . $package['name'] . '":' . PHP_EOL . '    ' . $error['message'] . PHP_EOL;
+                continue;
+            }
+        }
+
+        echo 'Renamed branch "' . $currentBranchName . '" to "' . $newBranchName . '" in ' . $package['name'] . PHP_EOL;
+    }
+
+    return $exit;
+}
+
 function upgradeDependencies(array $packages, array $arguments) {
     $newVersions = [];
     foreach ($arguments as $argument) {
@@ -267,15 +330,21 @@ if (null === $command) {
     echo '     Initialize projects mono repository configuration for subtree split' . PHP_EOL;
     echo ' - run <command> <arguments> eg. "vendor/bin/mono run composer install"' . PHP_EOL;
     echo '     Run a command in all found packages' . PHP_EOL;
+    echo ' - upgrade-dependency <package_names> eg. "vendor/bin/mono upgrade-dependency phpstan/phpstan rector/rector"' . PHP_EOL;
+    echo '     Update one or multiple dependencies in all found packages' . PHP_EOL;
+    echo ' - rename-branch <current_branch_name> <new_branch_name> eg. "vendor/bin/mono upgrade-dependency phpstan/phpstan rector/rector"' . PHP_EOL;
+    echo '     Rename a specific branch in all found packages Github Repository' . PHP_EOL;
 
     exit(0);
 }
 
 $packages = findPackages(getcwd());
+$arguments = \array_values($arguments);
 
 $return = match ($command) {
     'init-split' => initSplit($packages, $arguments),
     'upgrade-dependency' => upgradeDependencies($packages, $arguments),
+    'rename-branch' => renameBranch($packages, $arguments),
     'run' => runCommand($packages, $arguments),
     default => exit(1),
 };
