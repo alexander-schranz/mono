@@ -371,7 +371,7 @@ $return = match ($command) {
     'upgrade-dependency' => upgradeDependencies($packages, $arguments),
     'rename-branch' => renameBranch($packages, $arguments),
     'run' => runCommand($packages, $arguments),
-    default => exit(1),
+    default => 1,
 };
 
 exit($return);
