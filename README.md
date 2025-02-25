@@ -51,7 +51,7 @@ vendor/bin/mono run composer fix # runs in my case rector + php-cs-fixer
 vendor/bin/mono run composer lint # runs in my case various linters (phpstan, php-cs, ...)
 ```
 
-Mono is used and was build for managing [schranz-search monorepository](https://github.com/schranz-search/schranz-search).
+Mono is used and was build for managing [schranz-search monorepository](https://github.com/php-cmsig/search).
 
 ## Upgrade dependency
 
@@ -77,8 +77,7 @@ Mono search for all your packages and uses the Github API to rename a specific g
 
 ## Projects using mono
 
- - [schranz-search](https://github.com/schranz-search/schranz-search)
+ - [schranz-search](https://github.com/php-cmsig/search)
  - [modelflow-ai](https://github.com/modelflow-ai/.github)
 
 Let me know via [an issue](https://github.com/alexander-schranz/mono) if you are using mono.
-
