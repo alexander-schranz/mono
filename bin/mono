@@ -166,6 +166,7 @@ function renameBranch(array $packages, array $arguments) {
                 ++$exit;
 
                 echo 'Error in "' . $package['name'] . '":' . PHP_EOL . '    ' . $error['message'] . PHP_EOL;
+
                 continue;
             }
         }
@@ -374,4 +375,4 @@ $return = match ($command) {
     default => 1,
 };
 
-exit($return);
+exit($return ?? 0);
