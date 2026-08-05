@@ -53,6 +53,24 @@ vendor/bin/mono run composer lint # runs in my case various linters (phpstan, ph
 
 Mono is used and was build for managing [schranz-search monorepository](https://github.com/php-cmsig/search).
 
+## Outdated Command
+
+To check for outdated dependencies across all packages in your monorepo, you can use the `run` command:
+
+```bash
+vendor/bin/mono run composer outdated
+```
+
+Alternatively, configure a `post-outdated-cmd` script in your root `composer.json` to trigger it automatically:
+
+```json
+{
+    "scripts": {
+        "post-outdated-cmd": "@php vendor/bin/mono run composer outdated"
+    }
+}
+```
+
 ## Upgrade dependency
 
 If you have one dependency used in multiple packages and want to upgrade it in all packages you can use:
